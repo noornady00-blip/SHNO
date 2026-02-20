@@ -1374,6 +1374,21 @@
             window.renderQuestionInputs();
         };
 
+        // إضافة دالة إرسال الإشعار التي كانت مفقودة وتسبب توقف الزر
+        window.sendSystemNotification = async (title, message, type = 'info') => {
+            try {
+                await addDoc(collection(db, "notifications"), {
+                    title: title,
+                    message: message,
+                    type: type,
+                    date: new Date().toISOString(),
+                    readBy: []
+                });
+            } catch (error) {
+                console.error("Error adding notification: ", error);
+            }
+        };
+
         window.sendManualNotification = async () => {
             const title = document.getElementById('manualNotifTitle').value;
             const body = document.getElementById('manualNotifBody').value;
