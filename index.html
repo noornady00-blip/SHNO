@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOUR.NADY | كلية التربيه</title>
+    <title>NOUR.NADY | Educational Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- تهيئة ألوان Tailwind لتتطابق مع شعار كلية التربية جامعة المنيا -->
@@ -224,6 +224,13 @@
                     <i class="fas fa-bell text-indigo-400 text-sm sm:text-lg"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full hidden animate-pulse-red border-2 border-slate-900"></span>
                 </button>
+                <div id="notifDropdown" class="hidden fixed left-1/2 top-20 -translate-x-1/2 w-[90%] sm:absolute sm:top-14 sm:left-0 sm:translate-x-0 sm:w-80 glass-panel rounded-2xl max-h-96 overflow-y-auto z-50 shadow-2xl border border-indigo-500/20">
+                    <div class="p-4 border-b border-slate-700/50 flex justify-between items-center sticky top-0 bg-slate-900/90 backdrop-blur z-10">
+                        <h4 class="font-bold text-white text-sm sm:text-base"><i class="fas fa-bell text-amber-500 mr-2"></i> الإشعارات</h4>
+                        <button onclick="window.toggleNotifMenu()" class="text-xs w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="notifList" class="p-2 space-y-1"></div>
+                </div>
             </div>
 
             <button id="themeToggle" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 transition shrink-0">
@@ -234,17 +241,6 @@
             </button>
         </div>
     </nav>
-
-    <!-- Notifications Modal (Centered on all devices) -->
-    <div id="notifDropdown" class="hidden fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-panel w-full max-w-lg rounded-3xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl border border-indigo-500/30 animate-fade-in relative bg-slate-900">
-            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/95 backdrop-blur shrink-0">
-                <h4 class="font-bold text-white text-base sm:text-lg"><i class="fas fa-bell text-amber-500 mr-2"></i> الإشعارات</h4>
-                <button onclick="window.toggleNotifMenu()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500/20 transition"><i class="fas fa-times"></i></button>
-            </div>
-            <div id="notifList" class="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-slate-900/50"></div>
-        </div>
-    </div>
 
     <main id="app" class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8 relative w-full max-w-7xl">
         <!-- Content injected by JS -->
@@ -266,8 +262,8 @@
     </footer>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 hidden z-[100] transform transition-all duration-300 translate-y-10 opacity-0 w-[90%] sm:w-auto">
-        <div class="glass-panel px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border-l-4 border-l-amber-500 bg-slate-800/95 w-full">
+    <div id="toast" class="fixed bottom-6 left-6 hidden z-[100] transform transition-all duration-300 translate-y-10 opacity-0 w-[calc(100%-3rem)] sm:w-auto">
+        <div class="glass-panel px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border-l-4 border-l-amber-500 bg-slate-800/95">
             <div id="toastIconContainer" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-slate-700 shrink-0">
                 <i id="toastIcon" class="fas fa-info-circle text-amber-500 text-sm"></i>
             </div>
@@ -294,19 +290,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Language Initialization from LocalStorage
-        let currentLang = localStorage.getItem('nour_lang') || 'ar';
-
-        const updateLangUI = () => {
-            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr'; 
-            document.documentElement.lang = currentLang;
-            const btn = document.getElementById('langToggle');
-            if(btn) btn.innerText = currentLang === 'ar' ? 'English' : 'عربي';
-        };
-        updateLangUI();
-
         let currentUser = null;
         let userData = null;
+        let currentLang = 'ar';
+        
         let currentExamQuestions = [];
         let notifUnsubscribe = null;
         let isSigningUp = false;
@@ -343,7 +330,7 @@
                 const btnClass = type === 'danger' ? 'bg-red-600 hover:bg-red-500' : 'bg-indigo-600 hover:bg-indigo-500';
                 
                 const html = `
-                    <div id="${modalId}" class="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+                    <div id="${modalId}" class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
                         <div class="glass-panel p-6 md:p-8 rounded-3xl w-full max-w-md border border-indigo-500/30 shadow-2xl transform scale-95 transition-transform duration-300 relative overflow-hidden bg-slate-900">
                             <div class="flex items-center gap-4 mb-4">
                                 <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
@@ -464,10 +451,7 @@
                 changePic: "تحديث الصورة",
                 newPassword: "كلمة المرور الجديدة",
                 saveChanges: "حفظ التغييرات",
-                uploading: "جاري المعالجة والرفع...",
-                attemptsHistory: "سجل المحاولات",
-                maxAttemptsReached: "عذراً، لقد استنفذت جميع المحاولات (10/10)",
-                attemptNum: "محاولة"
+                uploading: "جاري المعالجة والرفع..."
             },
             en: {
                 welcome: "Welcome",
@@ -543,10 +527,7 @@
                 changePic: "Update Photo",
                 newPassword: "New Password",
                 saveChanges: "Save Changes",
-                uploading: "Uploading...",
-                attemptsHistory: "Attempts History",
-                maxAttemptsReached: "Sorry, you have exhausted all attempts (10/10)",
-                attemptNum: "Attempt"
+                uploading: "Uploading..."
             }
         };
 
@@ -560,7 +541,7 @@
             
             toastMsg.textContent = msg;
             
-            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-[300] transform transition-all duration-500 w-[90%] sm:w-auto';
+            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-[100] transform transition-all duration-500 w-[90%] sm:w-auto';
             toast.children[0].className = 'glass-panel px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border-l-4 bg-slate-800/95 w-full';
             
             if(type === 'success') {
@@ -603,8 +584,8 @@
         
         const toggleLang = () => { 
             currentLang = currentLang === 'ar' ? 'en' : 'ar'; 
-            localStorage.setItem('nour_lang', currentLang);
-            updateLangUI();
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr'; 
+            document.getElementById('langToggle').innerText = currentLang === 'ar' ? 'English' : 'عربي';
             router(); 
         };
 
@@ -671,12 +652,7 @@
                     });
                 }
                 list.innerHTML = html;
-                // إظهار النقطة الحمراء فقط إذا كان هناك إشعارات لم تُقرأ
-                if (unreadCount > 0) {
-                    badge.classList.remove('hidden'); 
-                } else { 
-                    badge.classList.add('hidden'); 
-                }
+                if (unreadCount > 0) badge.classList.remove('hidden'); else badge.classList.add('hidden');
             });
         };
 
@@ -728,9 +704,9 @@
                     <div class="text-center mb-8 flex flex-col items-center">
                          <div class="relative mb-6">
                             <div class="absolute inset-0 bg-indigo-500 blur-3xl opacity-20 rounded-full animate-pulse"></div>
-                            <img src="6000.jpg" class="w-24 h-24 sm:w-28 sm:h-28 relative z-10 logo-glow shadow-2xl">
+                            <img src="IMG_1068.PNG.jpg" class="w-24 h-24 sm:w-28 sm:h-28 relative z-10 logo-glow shadow-2xl">
                          </div>
-                        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-l from-indigo-400 to-amber-400 tracking-wide">كلية التربية</h1>
+                        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-l from-indigo-400 to-amber-400 tracking-wide">NOUR.NADY</h1>
                         <p class="text-base sm:text-lg md:text-xl text-slate-400 font-medium max-w-md px-4">${t('subtitle')}</p>
                     </div>
                     <div class="glass-panel p-6 sm:p-8 md:p-10 rounded-3xl w-full max-w-md border border-indigo-500/20 shadow-2xl relative overflow-hidden scroll-reveal">
@@ -840,14 +816,14 @@
                         </div>
                     </div>
                     <div class="lg:col-span-3 glass-panel p-4 sm:p-6 md:p-8 rounded-2xl min-h-[400px] lg:min-h-[600px] border border-indigo-500/20 relative overflow-hidden scroll-reveal">
-                        <div class="absolute top-0 right-0 w-48 h-48 sm:w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+                        <div class="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-indigo-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
                         
                         <h2 class="text-xl sm:text-2xl font-black mb-6 sm:mb-8 text-white flex items-center gap-2 sm:gap-3">
                             <span class="w-1.5 sm:w-2 h-6 sm:h-8 bg-amber-500 rounded-full inline-block"></span>
                             ${t(adminTab)}
                         </h2>
                         <div id="adminContent" class="z-10 relative">
-                            <div class="flex justify-center py-20"><div class="loader w-8 h-8 sm:w-10 h-10 border-4 border-t-amber-500 rounded-full"></div></div>
+                            <div class="flex justify-center py-20"><div class="loader w-8 h-8 sm:w-10 sm:h-10 border-4 border-t-amber-500 rounded-full"></div></div>
                         </div>
                     </div>
                 </div>
@@ -873,8 +849,8 @@
                         </div>
                         
                         <div class="flex flex-row md:flex-row gap-2 sm:gap-3 relative z-10 w-full md:w-auto mt-4 md:mt-0">
-                             <button onclick="window.setStudentTab('settings')" class="flex-1 md:flex-none px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700 shadow-sm font-bold text-xs sm:text-sm"><i class="fas fa-cog"></i> ${t('settings')}</button>
-                             <button onclick="handleLogout()" class="flex-1 md:flex-none px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition border border-red-500/20 shadow-sm font-bold text-xs sm:text-sm"><i class="fas fa-sign-out-alt"></i> ${t('logout')}</button>
+                             <button onclick="window.setStudentTab('settings')" class="flex-1 md:flex-none px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700 shadow-sm font-bold text-xs sm:text-sm"><i class="fas fa-cog"></i> الإعدادات</button>
+                             <button onclick="handleLogout()" class="flex-1 md:flex-none px-4 sm:px-5 py-2.5 sm:py-3 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition border border-red-500/20 shadow-sm font-bold text-xs sm:text-sm"><i class="fas fa-sign-out-alt"></i> خروج</button>
                         </div>
                     </div>
 
@@ -932,11 +908,9 @@
                             <button onclick="window.exitExam()" class="w-8 h-8 sm:w-10 sm:h-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500 transition shrink-0"><i class="fas fa-times"></i></button>
                         </div>
                         
-                        <div id="examAttemptsInfo"></div>
-                        
                         <div id="examQuestions" class="space-y-6 sm:space-y-8"></div>
                         
-                        <button id="submitExamBtn" onclick="window.submitExam()" class="hidden mt-8 sm:mt-10 w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black py-3 sm:py-4 rounded-xl hover:shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition transform hover:-translate-y-1 text-base sm:text-lg scroll-reveal">تسليم الإجابات <i class="fas fa-paper-plane ml-2"></i></button>
+                        <button id="submitExamBtn" onclick="submitExam()" class="mt-8 sm:mt-10 w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black py-3 sm:py-4 rounded-xl hover:shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition transform hover:-translate-y-1 text-base sm:text-lg scroll-reveal">تسليم الإجابات <i class="fas fa-paper-plane ml-2"></i></button>
                         
                         <div id="examResultPanel" class="hidden mt-8 sm:mt-10 p-6 sm:p-8 bg-slate-800/50 rounded-2xl border border-indigo-500/30 text-center animate-fade-in scroll-reveal">
                             <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-indigo-500/20 rounded-full flex items-center justify-center mb-3 sm:mb-4 border-4 border-slate-800">
@@ -1003,32 +977,70 @@
                         
                         router(); return;
                     }
+                    
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
                     const docSnap = await getDoc(doc(db, "users", user.uid));
+                    
                     if(docSnap.exists()) {
                         const data = docSnap.data();
                         if(data.status === 'pending') { await signOut(auth); showToast(t('waitApproval'), 'error'); }
                         else if (data.status === 'rejected') { await signOut(auth); showToast("تم رفض الحساب من قبل الإدارة", 'error'); }
                         else { userData = data; currentUser = user; router(); }
+                    } else {
+                        // إذا تم حذف الملف من قاعدة البيانات، يسجل خروج فوراً وتظهر رسالة
+                        await signOut(auth);
+                        showToast("تمت إزالة حسابك بواسطة المشرف، يرجى إنشاء حساب من جديد.", "error");
                     }
                 } else {
                     if(document.getElementById('password').value !== document.getElementById('confirmPass').value) { showToast("كلمات المرور غير متطابقة", 'error'); return; }
                     isSigningUp = true;
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    await setDoc(doc(db, "users", user.uid), {
-                        name: document.getElementById('name').value,
-                        phone: phoneVal,
-                        year: document.getElementById('year').value,
-                        email: email,
-                        status: 'pending',
-                        role: 'student',
-                        avatar: '',
-                        examAttempts: {},
-                        createdAt: new Date().toISOString()
-                    });
-                    showSignupSuccess = true; isSigningUp = false; await signOut(auth);
+                    
+                    try {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        const user = userCredential.user;
+                        await setDoc(doc(db, "users", user.uid), {
+                            name: document.getElementById('name').value,
+                            phone: phoneVal,
+                            year: document.getElementById('year').value,
+                            email: email,
+                            status: 'pending',
+                            role: 'student',
+                            avatar: '',
+                            createdAt: new Date().toISOString()
+                        });
+                        showSignupSuccess = true; isSigningUp = false; await signOut(auth);
+                    } catch (signupError) {
+                        // إذا الرقم مسجل كحساب محذوف (يتيح إنشاء حساب من جديد بنفس الباسورد القديم)
+                        if (signupError.code === 'auth/email-already-in-use') {
+                            try {
+                                const loginCred = await signInWithEmailAndPassword(auth, email, password);
+                                const docSnap = await getDoc(doc(db, "users", loginCred.user.uid));
+                                if (!docSnap.exists()) {
+                                    // إذا تم تسجيل الدخول ولم يجد ملفه (يعني محذوف)، يقوم بإعادة إنشاء الملف!
+                                    await setDoc(doc(db, "users", loginCred.user.uid), {
+                                        name: document.getElementById('name').value,
+                                        phone: phoneVal,
+                                        year: document.getElementById('year').value,
+                                        email: email,
+                                        status: 'pending',
+                                        role: 'student',
+                                        avatar: '',
+                                        createdAt: new Date().toISOString()
+                                    });
+                                    showSignupSuccess = true; isSigningUp = false; await signOut(auth);
+                                    router();
+                                    return;
+                                } else {
+                                    throw signupError;
+                                }
+                            } catch (e) {
+                                throw signupError;
+                            }
+                        } else {
+                            throw signupError;
+                        }
+                    }
                 }
             } catch (error) { 
                 isSigningUp = false; 
@@ -1046,7 +1058,7 @@
                         errorMsg = "رقم الهاتف أو كلمة المرور غير صحيحة.";
                         break;
                     case 'auth/email-already-in-use':
-                        errorMsg = "رقم الهاتف هذا مسجل مسبقاً، يرجى تسجيل الدخول بدلاً من ذلك.";
+                        errorMsg = "هذا الرقم مسجل مسبقاً. لتجديد حسابك المحذوف استخدم نفس كلمة المرور القديمة.";
                         break;
                     case 'auth/weak-password':
                         errorMsg = "كلمة المرور ضعيفة جداً، يرجى كتابة 6 أحرف أو أرقام على الأقل.";
@@ -1169,7 +1181,7 @@
                  const q = query(collection(db, "users"), where("role", "==", "student"));
                  const snap = await getDocs(q);
                  let html = snap.empty ? `<div class="text-center py-10 text-slate-500 scroll-reveal"><i class="fas fa-users text-3xl sm:text-4xl mb-3 opacity-50"></i><p class="text-sm sm:text-base">${t('noData')}</p></div>` : '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">';
-                 snap.forEach(doc => { const d = doc.data(); html += `<div class="bg-slate-800/30 p-3 sm:p-4 rounded-xl border border-slate-700 relative group flex items-center justify-between scroll-reveal"><div class="flex items-center gap-3 sm:gap-4"><img src="${d.avatar || 'https://ui-avatars.com/api/?name='+d.name+'&background=8c4731&color=fff'}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-indigo-500/30 object-cover bg-slate-800 shrink-0"><div><h4 class="font-bold text-white text-sm sm:text-base">${d.name}</h4><p class="text-[10px] sm:text-xs text-indigo-300 font-semibold bg-indigo-500/10 inline-block px-2 py-0.5 rounded mt-1">${t('year'+d.year)}</p></div></div><button onclick="window.deleteUser('${doc.id}')" class="w-7 h-7 sm:w-8 sm:h-8 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition sm:opacity-0 group-hover:opacity-100 flex items-center justify-center shrink-0"><i class="fas fa-user-minus text-xs sm:text-sm"></i></button></div>`; });
+                 snap.forEach(doc => { const d = doc.data(); html += `<div class="bg-slate-800/30 p-3 sm:p-4 rounded-xl border border-slate-700 relative group flex items-center justify-between scroll-reveal"><div class="flex items-center gap-3 sm:gap-4"><img src="${d.avatar || 'https://ui-avatars.com/api/?name='+d.name+'&background=8c4731&color=fff'}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-indigo-500/30 object-cover bg-slate-800 shrink-0"><div><h4 class="font-bold text-white text-sm sm:text-base">${d.name}</h4><div class="flex flex-wrap gap-1.5 mt-1"><span class="text-[10px] sm:text-xs text-indigo-300 font-semibold bg-indigo-500/10 inline-block px-2 py-0.5 rounded">${t('year'+d.year)}</span><span class="text-[10px] sm:text-xs text-slate-300 font-semibold bg-slate-700/50 inline-block px-2 py-0.5 rounded dir-ltr text-right"><i class="fas fa-phone text-[9px] mr-1"></i>${d.phone || ''}</span></div></div></div><button onclick="window.deleteUser('${doc.id}')" class="w-7 h-7 sm:w-8 sm:h-8 rounded bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition sm:opacity-0 group-hover:opacity-100 flex items-center justify-center shrink-0"><i class="fas fa-user-minus text-xs sm:text-sm"></i></button></div>`; });
                  container.innerHTML = html + '</div>';
                  setTimeout(window.applyScrollAnimations, 50);
             }
@@ -1529,7 +1541,7 @@
             const examList = document.getElementById('examList');
             if(selectedCourse.exams?.length > 0) {
                 examList.innerHTML = selectedCourse.exams.map((e, i) => `
-                    <div onclick="window.startExam(${i})" class="p-3 sm:p-4 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 border border-slate-700 hover:border-amber-500/50 transition flex justify-between items-center group shadow-sm scroll-reveal">
+                    <div onclick="startExam(${i})" class="p-3 sm:p-4 bg-slate-800 rounded-xl cursor-pointer hover:bg-slate-700 border border-slate-700 hover:border-amber-500/50 transition flex justify-between items-center group shadow-sm scroll-reveal">
                         <div class="flex items-center gap-2 sm:gap-3">
                             <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0"><i class="fas fa-pen-nib text-xs sm:text-sm"></i></div>
                             <span class="font-bold text-slate-200 text-xs sm:text-sm">${e.title}</span>
@@ -1553,38 +1565,7 @@
             setTimeout(window.applyScrollAnimations, 50);
         };
 
-        window.startExam = (index) => { 
-            selectedExam = selectedCourse.exams[index]; 
-            router(); 
-            
-            // توليد قائمة المحاولات السابقة للطالب
-            const attempts = userData?.examAttempts?.[selectedExam.id] || [];
-            const attemptsContainer = document.getElementById('examAttemptsInfo');
-            if(attemptsContainer) {
-                if(attempts.length > 0) {
-                    attemptsContainer.innerHTML = `<div class="mb-4 sm:mb-6 bg-slate-800/50 p-3 sm:p-4 rounded-xl border border-slate-700">
-                        <h4 class="text-xs sm:text-sm font-bold text-indigo-300 mb-2 sm:mb-3"><i class="fas fa-history mr-1"></i> ${t('attemptsHistory')} (${attempts.length}/10):</h4>
-                        <div class="flex flex-wrap gap-2 sm:gap-3">
-                            ${attempts.map((sc, idx) => `<span class="bg-slate-900 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold border border-slate-600">${t('attemptNum')} ${idx+1}: <span class="text-amber-400 mr-1">${sc.score}/${sc.max}</span></span>`).join('')}
-                        </div>
-                    </div>`;
-                } else {
-                    attemptsContainer.innerHTML = '';
-                }
-            }
-
-            // إغلاق الامتحان إذا استنفذ 10 محاولات
-            if (attempts.length >= 10 && currentUser && currentUser.role === 'student') {
-                document.getElementById('examQuestions').innerHTML = `
-                    <div class="p-6 sm:p-8 bg-red-500/10 border border-red-500/30 rounded-2xl text-center scroll-reveal">
-                        <i class="fas fa-lock text-4xl sm:text-5xl text-red-500 mb-3 sm:mb-4"></i>
-                        <h3 class="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">${t('maxAttemptsReached')}</h3>
-                        <p class="text-slate-400 text-xs sm:text-sm">لا يمكنك إعادة هذا الامتحان مرة أخرى.</p>
-                    </div>`;
-                document.getElementById('submitExamBtn').classList.add('hidden');
-                return;
-            }
-
+        window.startExam = (index) => { selectedExam = selectedCourse.exams[index]; router(); 
             document.getElementById('examQuestions').innerHTML = selectedExam.questions.map((q, i) => 
                 `<div class="bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl border border-slate-700 q-block relative shadow-md scroll-reveal" id="qblock-${i}">
                     <div class="flex gap-3 sm:gap-4 items-start mb-4 sm:mb-6">
@@ -1616,8 +1597,6 @@
                 </div>`
             ).join('');
             
-            document.getElementById('submitExamBtn').classList.remove('hidden');
-
             // Trigger MathJax
             if(window.MathJax) { setTimeout(()=> window.MathJax.typesetPromise(), 100); }
             setTimeout(window.applyScrollAnimations, 50);
@@ -1657,10 +1636,9 @@
             const percentage = mcqTfCount > 0 ? Math.round((score / mcqTfCount) * 100) : 0;
             let colorClass = percentage >= 85 ? 'text-green-400' : percentage >= 50 ? 'text-amber-400' : 'text-red-400';
             
-            // تسجيل النتيجة في قاعدة البيانات وفي ملف الطالب
+            // Log Result to Database for Stats
             if (currentUser && currentUser.role === 'student') {
                 try {
-                    // سجل للمشرف
                     await addDoc(collection(db, "activity_logs"), {
                         userId: currentUser.uid,
                         userName: userData.name,
@@ -1669,16 +1647,6 @@
                         score: score,
                         maxScore: mcqTfCount,
                         date: new Date().toISOString()
-                    });
-
-                    // حفظ النتيجة للمحاولات المتكررة (Max 10) للطالب نفسه
-                    if (!userData.examAttempts) userData.examAttempts = {};
-                    if (!userData.examAttempts[selectedExam.id]) userData.examAttempts[selectedExam.id] = [];
-                    
-                    userData.examAttempts[selectedExam.id].push({ score: score, max: mcqTfCount, date: new Date().toISOString() });
-                    
-                    await updateDoc(doc(db, "users", currentUser.uid), {
-                        [`examAttempts.${selectedExam.id}`]: userData.examAttempts[selectedExam.id]
                     });
                 } catch(e) { console.error("Error logging exam result", e); }
             }
