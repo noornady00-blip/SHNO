@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOUR NADY - منصة الكورسات</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- تمت إزالة الـ SDK القديمة واستبدالها بالكود المباشر في الأسفل -->
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; }
+    * { font-family: 'Cairo', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+    .card-glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-primary { background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%); }
+    .btn-primary:hover { background: linear-gradient(135deg, #ff6b6b 0%, #e94560 100%); }
+    .input-style { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+    .input-style:focus { border-color: #e94560; outline: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade { animation: fadeIn 0.5s ease-out; }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full gradient-bg text-white overflow-auto">
+  <div id="app" class="min-h-full w-full"><!-- Loading Screen -->
+   <div id="loading-screen" class="fixed inset-0 gradient-bg flex items-center justify-center z-50">
+    <div class="text-center">
+     <div class="w-16 h-16 border-4 border-t-pink-500 border-r-transparent border-b-pink-500 border-l-transparent rounded-full animate-spin mx-auto mb-4"></div>
+     <p class="text-xl">جاري الاتصال بقاعدة البيانات...</p>
+    </div>
+   </div><!-- Auth Page -->
+   <div id="auth-page" class="hidden min-h-full w-full p-4">
+    <div class="max-w-md mx-auto pt-10 animate-fade">
+     <div class="text-center mb-8">
+      <h1 id="main-title" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-red-500 mb-2">NOUR NADY</h1>
+      <p class="text-gray-400">منصة التعليم الإلكتروني</p>
+     </div>
+     <div class="card-glass rounded-2xl p-6">
+      <div class="flex mb-6"><button id="login-tab" onclick="showLoginForm()" class="flex-1 py-3 rounded-xl btn-primary text-white font-bold">تسجيل الدخول</button> <button id="register-tab" onclick="showRegisterForm()" class="flex-1 py-3 rounded-xl text-gray-400 font-bold mr-2">إنشاء حساب</button>
+      </div><!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)">
+       <div class="mb-4"><label class="block mb-2 text-gray-300">رقم الموبايل</label> <input type="tel" id="login-phone" class="w-full p-4 rounded-xl input-style text-white" placeholder="01xxxxxxxxx" required>
+       </div>
+       <div class="mb-6"><label class="block mb-2 text-gray-300">كلمة السر</label> <input type="password" id="login-password" class="w-full p-4 rounded-xl input-style text-white" placeholder="••••••••" required>
+       </div><button type="submit" id="login-btn" class="w-full py-4 rounded-xl btn-primary text-white font-bold text-lg">دخول</button>
+       <p id="login-error" class="text-red-400 text-center mt-4 hidden"></p>
+      </form><!-- Register Form -->
+      <form id="register-form" class="hidden" onsubmit="handleRegister(event)">
+       <div class="mb-4"><label class="block mb-2 text-gray-300">الاسم الكامل</label> <input type="text" id="reg-name" class="w-full p-4 rounded-xl input-style text-white" placeholder="أدخل اسمك" required>
+       </div>
+       <div class="mb-4"><label class="block mb-2 text-gray-300">رقم الموبايل</label> <input type="tel" id="reg-phone" class="w-full p-4 rounded-xl input-style text-white" placeholder="01xxxxxxxxx" required>
+       </div>
+       <div class="mb-4"><label class="block mb-2 text-gray-300">كلمة السر</label> <input type="password" id="reg-password" class="w-full p-4 rounded-xl input-style text-white" placeholder="••••••••" required>
+       </div>
+       <div class="mb-6"><label class="block mb-2 text-gray-300">الصف الدراسي</label> <select id="reg-grade" class="w-full p-4 rounded-xl input-style text-white" required> <option value="">اختر الصف</option> <option value="prep1">أولى إعدادي</option> <option value="prep2">تانية إعدادي</option> <option value="prep3">تالتة إعدادي</option> <option value="sec1">أولى ثانوي</option> <option value="sec2">تانية ثانوي</option> <option value="sec3">تالتة ثانوي</option> </select>
+       </div><button type="submit" id="register-btn" class="w-full py-4 rounded-xl btn-primary text-white font-bold text-lg">إنشاء حساب</button>
+       <p id="register-error" class="text-red-400 text-center mt-4 hidden"></p>
+       <p id="register-success" class="text-green-400 text-center mt-4 hidden"></p>
+      </form>
+     </div>
+    </div>
+   </div><!-- Main Dashboard -->
+   <div id="dashboard" class="hidden min-h-full w-full"><!-- Header -->
+    <header class="card-glass p-4 sticky top-0 z-40">
+     <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <h1 id="dash-title" class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-red-500">NOUR NADY</h1>
+      <div class="flex items-center gap-4"><span id="user-name" class="text-gray-300"></span> <span id="user-grade" class="bg-pink-500 px-3 py-1 rounded-full text-sm"></span> <button onclick="logout()" class="bg-red-500/20 text-red-400 px-4 py-2 rounded-xl hover:bg-red-500/30">خروج</button>
+      </div>
+     </div>
+    </header><!-- Navigation -->
+    <nav class="max-w-6xl mx-auto p-4">
+     <div class="flex gap-2 overflow-x-auto pb-2"><button onclick="showSection('courses')" class="nav-btn active px-6 py-3 rounded-xl btn-primary text-white font-bold whitespace-nowrap" data-section="courses">📚 الكورسات</button> <button onclick="showSection('exams')" class="nav-btn px-6 py-3 rounded-xl card-glass text-gray-300 font-bold whitespace-nowrap" data-section="exams">📝 الامتحانات</button> <button onclick="showSection('results')" class="nav-btn px-6 py-3 rounded-xl card-glass text-gray-300 font-bold whitespace-nowrap" data-section="results">📊 نتائجي</button>
+     </div>
+    </nav><!-- Content Sections -->
+    <main class="max-w-6xl mx-auto p-4"><!-- Courses Section -->
+     <section id="courses-section" class="animate-fade">
+      <h2 class="text-2xl font-bold mb-6">📚 كورساتك</h2>
+      <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <p class="text-gray-400 col-span-full text-center py-10">لا توجد كورسات متاحة حالياً</p>
+      </div>
+     </section><!-- Exams Section -->
+     <section id="exams-section" class="hidden animate-fade">
+      <h2 class="text-2xl font-bold mb-6">📝 الامتحانات المتاحة</h2>
+      <div id="exams-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+       <p class="text-gray-400 col-span-full text-center py-10">لا توجد امتحانات متاحة حالياً</p>
+      </div>
+     </section><!-- Results Section -->
+     <section id="results-section" class="hidden animate-fade">
+      <h2 class="text-2xl font-bold mb-6">📊 نتائجي</h2>
+      <div id="results-list" class="space-y-4">
+       <p class="text-gray-400 text-center py-10">لم تقم بأي امتحان بعد</p>
+      </div>
+     </section>
+    </main>
+   </div><!-- Video Player Modal -->
+   <div id="video-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-4xl">
+     <div class="flex justify-between items-center mb-4">
+      <h3 id="video-title" class="text-xl font-bold"></h3><button onclick="closeVideo()" class="text-white text-3xl">×</button>
+     </div>
+     <div class="aspect-video bg-black rounded-xl overflow-hidden">
+      <video id="video-player" class="w-full h-full" controls></video>
+     </div>
+    </div>
+   </div><!-- Exam Modal -->
+   <div id="exam-modal" class="hidden fixed inset-0 bg-black/90 z-50 overflow-auto p-4">
+    <div class="max-w-2xl mx-auto my-8">
+     <div class="card-glass rounded-2xl p-6">
+      <div class="flex justify-between items-center mb-6">
+       <h3 id="exam-title" class="text-2xl font-bold"></h3><button onclick="closeExam()" class="text-white text-3xl">×</button>
+      </div>
+      <form id="exam-form" onsubmit="submitExam(event)">
+       <div id="questions-container"></div><button type="submit" class="w-full py-4 rounded-xl btn-primary text-white font-bold text-lg mt-6">تسليم الامتحان</button>
+      </form>
+     </div>
+    </div>
+   </div><!-- Result Modal -->
+   <div id="result-modal" class="hidden fixed inset-0 bg-black/90 z-50 overflow-auto p-4">
+    <div class="max-w-2xl mx-auto my-8">
+     <div class="card-glass rounded-2xl p-6">
+      <div class="flex justify-between items-center mb-6">
+       <h3 class="text-2xl font-bold">نتيجة الامتحان</h3><button onclick="closeResult()" class="text-white text-3xl">×</button>
+      </div>
+      <div id="result-content"></div>
+     </div>
+    </div>
+   </div>
+  </div>
+  
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyDd1Z6tf88zho4j6gcf53TQz3yJmoQDpn8",
+    authDomain: "noor5-be881.firebaseapp.com",
+    projectId: "noor5-be881",
+    storageBucket: "noor5-be881.firebasestorage.app",
+    messagingSenderId: "310125450546",
+    appId: "1:310125450546:web:ff3cb7005f28a204f3732b",
+    measurementId: "G-RPQ7MNCS28"
+  };
+  
+  // تهيئة Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  
+  // تسجيل دخول مجهول لضمان عمل قاعدة البيانات
+  signInAnonymously(auth).then(() => {
+    console.log("Connected to Firebase Auth");
+  }).catch((error) => {
+    console.error("Auth Error", error);
+  });
+  
+  // استبدال الـ SDK القديم بـ Firebase
+  window.dataSdk = {
+    async init(handler) {
+      const q = query(collection(db, "platform_data"));
+      onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          __backendId: doc.id,
+          ...doc.data()
+        }));
+        handler.onDataChanged(data);
+      });
+      return { isOk: true };
+    },
+    async create(data) {
+      try {
+        await addDoc(collection(db, "platform_data"), data);
+        return { isOk: true };
+      } catch (e) { 
+        console.error("Create Error", e);
+        return { isOk: false }; 
+      }
+    },
+    async update(data) {
+      try {
+        const id = data.__backendId;
+        const ref = doc(db, "platform_data", id);
+        const updateData = { ...data };
+        delete updateData.__backendId;
+        await updateDoc(ref, updateData);
+        return { isOk: true };
+      } catch (e) { return { isOk: false }; }
+    },
+    async delete(data) {
+      try {
+        await deleteDoc(doc(db, "platform_data", data.__backendId));
+        return { isOk: true };
+      } catch (e) { return { isOk: false }; }
+    }
+  };
+
+  // بدء التطبيق فقط بعد تهيئة Firebase
+  if (window.initApp) {
+    window.initApp();
+  }
+</script>  
+  
+  <script>
+    /* DATABASE_STORAGE - جميع البيانات تُحفظ هنا في Canva Sheet */
+    /* يمكنك رؤية البيانات بالضغط على زر Data فوق الكود */
+    
+    // Default Config
+    const defaultConfig = {
+      site_title: 'NOUR NADY'
+    };
+
+    // App State
+    let currentUser = null;
+    let allData = [];
+    let currentExam = null;
+
+    // Grade Labels
+    const gradeLabels = {
+      'prep1': 'أولى إعدادي',
+      'prep2': 'تانية إعدادي',
+      'prep3': 'تالتة إعدادي',
+      'sec1': 'أولى ثانوي',
+      'sec2': 'تانية ثانوي',
+      'sec3': 'تالتة ثانوي'
+    };
+
+    // Data Handler
+    const dataHandler = {
+      onDataChanged(data) {
+        /* DATABASE_STORAGE - البيانات المستلمة من قاعدة البيانات */
+        allData = data;
+        console.log('Data updated:', data.length, 'records');
+        
+        if (currentUser) {
+          renderCourses();
+          renderExams();
+          renderResults();
+        }
+        
+        document.getElementById('loading-screen').classList.add('hidden');
+      }
+    };
+
+    // Initialize SDK
+    window.initApp = async function() {
+      try {
+        // ننتظر قليلاً للتأكد من تحميل dataSdk
+        if (!window.dataSdk) {
+           console.log("Waiting for Firebase...");
+           setTimeout(window.initApp, 500);
+           return;
+        }
+
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error('Failed to init SDK');
+        }
+        
+        // Check saved session
+        const savedUser = localStorage.getItem('nour_nady_user');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          const user = allData.find(d => d.type === 'student' && d.phone === userData.phone && d.status === 'approved');
+          if (user) {
+            currentUser = user;
+            showDashboard();
+          } else {
+            showAuthPage();
+          }
+        } else {
+          showAuthPage();
+        }
+      } catch (e) {
+        console.error('Init error:', e);
+        showAuthPage();
+      }
+    }
+
+    // Element SDK Init
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (config) => {
+          const title = config.site_title || defaultConfig.site_title;
+          const mainTitle = document.getElementById('main-title');
+          const dashTitle = document.getElementById('dash-title');
+          if (mainTitle) mainTitle.textContent = title;
+          if (dashTitle) dashTitle.textContent = title;
+        },
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['site_title', config.site_title || defaultConfig.site_title]
+        ])
+      });
+    }
+
+    // Show/Hide Pages
+    function showAuthPage() {
+      document.getElementById('loading-screen').classList.add('hidden');
+      document.getElementById('auth-page').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loading-screen').classList.add('hidden');
+      document.getElementById('auth-page').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      
+      document.getElementById('user-name').textContent = currentUser.name;
+      document.getElementById('user-grade').textContent = gradeLabels[currentUser.grade] || currentUser.grade;
+      
+      renderCourses();
+      renderExams();
+      renderResults();
+    }
+
+    // Auth Forms
+    function showLoginForm() {
+      document.getElementById('login-form').classList.remove('hidden');
+      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('login-tab').classList.add('btn-primary');
+      document.getElementById('login-tab').classList.remove('text-gray-400');
+      document.getElementById('register-tab').classList.remove('btn-primary');
+      document.getElementById('register-tab').classList.add('text-gray-400');
+    }
+
+    function showRegisterForm() {
+      document.getElementById('login-form').classList.add('hidden');
+      document.getElementById('register-form').classList.remove('hidden');
+      document.getElementById('register-tab').classList.add('btn-primary');
+      document.getElementById('register-tab').classList.remove('text-gray-400');
+      document.getElementById('login-tab').classList.remove('btn-primary');
+      document.getElementById('login-tab').classList.add('text-gray-400');
+    }
+
+    // Handle Login
+    async function handleLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('login-phone').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+      const btn = document.getElementById('login-btn');
+      
+      btn.disabled = true;
+      btn.textContent = 'جاري التحقق...';
+      errorEl.classList.add('hidden');
+
+      /* DATABASE_STORAGE - البحث عن المستخدم في قاعدة البيانات */
+      const user = allData.find(d => d.type === 'student' && d.phone === phone && d.password === password);
+      
+      if (!user) {
+        errorEl.textContent = 'رقم الموبايل أو كلمة السر غير صحيحة';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'دخول';
+        return;
+      }
+
+      if (user.status === 'pending') {
+        errorEl.textContent = 'حسابك في انتظار موافقة المشرف';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'دخول';
+        return;
+      }
+
+      if (user.status === 'rejected') {
+        errorEl.textContent = 'تم رفض طلب التسجيل';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'دخول';
+        return;
+      }
+
+      currentUser = user;
+      localStorage.setItem('nour_nady_user', JSON.stringify({ phone: user.phone }));
+      btn.disabled = false;
+      btn.textContent = 'دخول';
+      showDashboard();
+    }
+
+    // Handle Register
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const grade = document.getElementById('reg-grade').value;
+      const errorEl = document.getElementById('register-error');
+      const successEl = document.getElementById('register-success');
+      const btn = document.getElementById('register-btn');
+
+      errorEl.classList.add('hidden');
+      successEl.classList.add('hidden');
+
+      if (!phone.match(/^01[0-9]{9}$/)) {
+        errorEl.textContent = 'رقم الموبايل غير صحيح';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      /* DATABASE_STORAGE - التحقق من وجود الرقم */
+      const exists = allData.find(d => d.type === 'student' && d.phone === phone);
+      if (exists) {
+        errorEl.textContent = 'هذا الرقم مسجل بالفعل';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // Check limit
+      const studentCount = allData.filter(d => d.type === 'student').length;
+      if (studentCount >= 999) {
+        errorEl.textContent = 'عذراً، المنصة ممتلئة حالياً';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'جاري التسجيل...';
+
+      /* DATABASE_STORAGE - حفظ بيانات الطالب الجديد */
+      const result = await window.dataSdk.create({
+        type: 'student',
+        phone: phone,
+        password: password,
+        name: name,
+        grade: grade,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'إنشاء حساب';
+
+      if (result.isOk) {
+        successEl.textContent = 'تم إرسال طلب التسجيل! في انتظار موافقة المشرف';
+        successEl.classList.remove('hidden');
+        document.getElementById('register-form').reset();
+      } else {
+        errorEl.textContent = 'حدث خطأ، حاول مرة أخرى';
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    // Logout
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('nour_nady_user');
+      showAuthPage();
+    }
+
+    // Navigation
+    function showSection(section) {
+      const sections = ['courses', 'exams', 'results'];
+      sections.forEach(s => {
+        document.getElementById(s + '-section').classList.toggle('hidden', s !== section);
+      });
+      
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.section === section) {
+          btn.classList.add('btn-primary');
+          btn.classList.remove('card-glass', 'text-gray-300');
+          btn.classList.add('text-white');
+        } else {
+          btn.classList.remove('btn-primary', 'text-white');
+          btn.classList.add('card-glass', 'text-gray-300');
+        }
+      });
+    }
+
+    // Render Courses
+    function renderCourses() {
+      const grid = document.getElementById('courses-grid');
+      /* DATABASE_STORAGE - جلب الكورسات المتاحة للصف */
+      const courses = allData.filter(d => d.type === 'course' && d.courseGrade === currentUser.grade);
+      
+      if (courses.length === 0) {
+        grid.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">لا توجد كورسات متاحة حالياً</p>';
+        return;
+      }
+
+      grid.innerHTML = courses.map(course => `
+        <div class="card-glass rounded-2xl overflow-hidden hover:scale-105 transition-transform cursor-pointer" onclick="openVideo('${course.__backendId}', '${encodeURIComponent(course.courseName)}', '${encodeURIComponent(course.videoUrl || '')}')">
+          <div class="aspect-video bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+            <span class="text-6xl">🎬</span>
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg mb-2">${course.courseName}</h3>
+            <p class="text-gray-400 text-sm">${gradeLabels[course.courseGrade] || course.courseGrade}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Open Video
+    async function openVideo(courseId, name, url) {
+      const videoUrl = decodeURIComponent(url);
+      const videoName = decodeURIComponent(name);
+      
+      if (!videoUrl) {
+        return;
+      }
+
+      document.getElementById('video-title').textContent = videoName;
+      document.getElementById('video-player').src = videoUrl;
+      document.getElementById('video-modal').classList.remove('hidden');
+
+      /* DATABASE_STORAGE - تسجيل مشاهدة الفيديو */
+      const watchCount = allData.filter(d => d.type === 'watch').length;
+      if (watchCount < 999) {
+        await window.dataSdk.create({
+          type: 'watch',
+          courseId: courseId,
+          studentPhone: currentUser.phone,
+          watchedFull: false,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // Track video end
+      const videoEl = document.getElementById('video-player');
+      videoEl.onended = async () => {
+        /* DATABASE_STORAGE - تحديث حالة المشاهدة الكاملة */
+        const watch = allData.find(d => d.type === 'watch' && d.courseId === courseId && d.studentPhone === currentUser.phone && !d.watchedFull);
+        if (watch) {
+          await window.dataSdk.update({ ...watch, watchedFull: true });
+        }
+      };
+    }
+
+    function closeVideo() {
+      document.getElementById('video-modal').classList.add('hidden');
+      document.getElementById('video-player').pause();
+      document.getElementById('video-player').src = '';
+    }
+
+    // Render Exams
+    function renderExams() {
+      const grid = document.getElementById('exams-grid');
+      /* DATABASE_STORAGE - جلب الامتحانات المتاحة للصف */
+      const exams = allData.filter(d => d.type === 'exam' && d.courseGrade === currentUser.grade);
+      
+      if (exams.length === 0) {
+        grid.innerHTML = '<p class="text-gray-400 col-span-full text-center py-10">لا توجد امتحانات متاحة حالياً</p>';
+        return;
+      }
+
+      // Group exams by examId
+      const examGroups = {};
+      exams.forEach(q => {
+        if (!examGroups[q.examId]) {
+          examGroups[q.examId] = { name: q.courseName, grade: q.courseGrade, questions: [] };
+        }
+        examGroups[q.examId].questions.push(q);
+      });
+
+      grid.innerHTML = Object.entries(examGroups).map(([examId, exam]) => `
+        <div class="card-glass rounded-2xl p-6 hover:scale-105 transition-transform cursor-pointer" onclick="startExam('${examId}')">
+          <div class="flex items-center gap-4 mb-4">
+            <span class="text-4xl">📝</span>
+            <div>
+              <h3 class="font-bold text-lg">${exam.name}</h3>
+              <p class="text-gray-400 text-sm">${exam.questions.length} سؤال</p>
+            </div>
+          </div>
+          <p class="text-gray-400 text-sm">${gradeLabels[exam.grade] || exam.grade}</p>
+        </div>
+      `).join('');
+    }
+
+    // Start Exam
+    function startExam(examId) {
+      /* DATABASE_STORAGE - جلب أسئلة الامتحان */
+      const questions = allData.filter(d => d.type === 'exam' && d.examId === examId);
+      if (questions.length === 0) return;
+
+      currentExam = { examId, questions };
+      document.getElementById('exam-title').textContent = questions[0].courseName;
+      
+      const container = document.getElementById('questions-container');
+      container.innerHTML = questions.map((q, i) => {
+        const options = JSON.parse(q.options || '[]');
+        return `
+          <div class="mb-6 p-4 card-glass rounded-xl">
+            <p class="font-bold mb-4">${i + 1}. ${q.questionText}</p>
+            <div class="space-y-2">
+              ${options.map((opt, j) => `
+                <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 cursor-pointer">
+                  <input type="radio" name="q${i}" value="${j}" class="w-5 h-5 accent-pink-500" required>
+                  <span>${opt}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('exam-modal').classList.remove('hidden');
+    }
+
+    function closeExam() {
+      document.getElementById('exam-modal').classList.add('hidden');
+      currentExam = null;
+    }
+
+    // Submit Exam
+    async function submitExam(e) {
+      e.preventDefault();
+      if (!currentExam) return;
+
+      let correct = 0;
+      const answers = [];
+      const results = [];
+
+      currentExam.questions.forEach((q, i) => {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const selectedIndex = selected ? parseInt(selected.value) : -1;
+        const correctIndex = parseInt(q.correctAnswer);
+        const isCorrect = selectedIndex === correctIndex;
+        
+        if (isCorrect) correct++;
+        
+        const options = JSON.parse(q.options || '[]');
+        answers.push(selectedIndex);
+        results.push({
+          question: q.questionText,
+          options: options,
+          selected: selectedIndex,
+          correct: correctIndex,
+          isCorrect: isCorrect
+        });
+      });
+
+      const score = Math.round((correct / currentExam.questions.length) * 100);
+
+      /* DATABASE_STORAGE - حفظ نتيجة الامتحان */
+      const resultCount = allData.filter(d => d.type === 'result').length;
+      if (resultCount < 999) {
+        await window.dataSdk.create({
+          type: 'result',
+          examId: currentExam.examId,
+          studentPhone: currentUser.phone,
+          score: score,
+          totalQuestions: currentExam.questions.length,
+          answers: JSON.stringify(answers),
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // Show result
+      closeExam();
+      showExamResult(score, correct, currentExam.questions.length, results);
+    }
+
+    // Show Exam Result
+    function showExamResult(score, correct, total, results) {
+      const content = document.getElementById('result-content');
+      
+      const scoreColor = score >= 80 ? 'text-green-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400';
+      
+      content.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="text-6xl mb-4">${score >= 80 ? '🎉' : score >= 50 ? '👍' : '📚'}</div>
+          <p class="text-4xl font-black ${scoreColor}">${score}%</p>
+          <p class="text-gray-400 mt-2">${correct} من ${total} صحيحة</p>
+        </div>
+        <div class="space-y-4">
+          ${results.map((r, i) => `
+            <div class="p-4 rounded-xl ${r.isCorrect ? 'bg-green-500/20 border border-green-500/50' : 'bg-red-500/20 border border-red-500/50'}">
+              <p class="font-bold mb-2">${i + 1}. ${r.question}</p>
+              <div class="space-y-1 text-sm">
+                ${r.options.map((opt, j) => {
+                  let classes = '';
+                  if (j === r.correct) classes = 'text-green-400 font-bold';
+                  else if (j === r.selected && !r.isCorrect) classes = 'text-red-400 line-through';
+                  return `<p class="${classes}">${j === r.correct ? '✓' : j === r.selected ? '✗' : '•'} ${opt}</p>`;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      document.getElementById('result-modal').classList.remove('hidden');
+    }
+
+    function closeResult() {
+      document.getElementById('result-modal').classList.add('hidden');
+      renderResults();
+    }
+
+    // Render Results
+    function renderResults() {
+      const list = document.getElementById('results-list');
+      /* DATABASE_STORAGE - جلب نتائج الطالب */
+      const results = allData.filter(d => d.type === 'result' && d.studentPhone === currentUser.phone);
+      
+      if (results.length === 0) {
+        list.innerHTML = '<p class="text-gray-400 text-center py-10">لم تقم بأي امتحان بعد</p>';
+        return;
+      }
+
+      // Get exam names
+      const examNames = {};
+      allData.filter(d => d.type === 'exam').forEach(e => {
+        examNames[e.examId] = e.courseName;
+      });
+
+      list.innerHTML = results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(r => {
+        const scoreColor = r.score >= 80 ? 'text-green-400' : r.score >= 50 ? 'text-yellow-400' : 'text-red-400';
+        return `
+          <div class="card-glass rounded-xl p-4 flex justify-between items-center">
+            <div>
+              <h4 class="font-bold">${examNames[r.examId] || 'امتحان'}</h4>
+              <p class="text-gray-400 text-sm">${new Date(r.createdAt).toLocaleDateString('ar-EG')}</p>
+            </div>
+            <div class="text-left">
+              <p class="text-2xl font-black ${scoreColor}">${r.score}%</p>
+              <p class="text-gray-400 text-sm">${Math.round(r.score * r.totalQuestions / 100)} / ${r.totalQuestions}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
