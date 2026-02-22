@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NOUR.NADY | Educational Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="manifest.json">
     
     <!-- تهيئة ألوان Tailwind لتتطابق مع شعار كلية التربية جامعة المنيا -->
     <script>
@@ -1804,6 +1805,11 @@
             } else { currentUser = null; }
             router();
         });
+    </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
     </script>
 </body>
 </html>
