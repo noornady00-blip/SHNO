@@ -202,7 +202,7 @@
     </div>
 
     <!-- Responsive Navbar -->
-    <nav class="glass-panel sticky top-0 z-50 px-3 py-3 sm:px-6 sm:py-4 flex justify-between items-center border-b border-indigo-500/20 rounded-none shadow-sm gap-2 w-full">
+    <nav class="glass-panel sticky top-0 z-40 px-3 py-3 sm:px-6 sm:py-4 flex justify-between items-center border-b border-indigo-500/20 rounded-none shadow-sm gap-2 w-full">
         <!-- Logo Section -->
         <div class="flex items-center gap-2 sm:gap-4 shrink-0">
             <img src="IMG_1068.PNG.jpg" onclick="document.getElementById('logoModal').classList.remove('hidden')" alt="Logo" class="w-10 h-10 sm:w-12 sm:h-12 logo-glow">
@@ -224,13 +224,6 @@
                     <i class="fas fa-bell text-indigo-400 text-sm sm:text-lg"></i>
                     <span id="notifBadge" class="absolute top-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full hidden animate-pulse-red border-2 border-slate-900"></span>
                 </button>
-                <div id="notifDropdown" class="hidden fixed left-1/2 top-20 -translate-x-1/2 w-[90%] sm:absolute sm:top-14 sm:left-0 sm:translate-x-0 sm:w-80 glass-panel rounded-2xl max-h-96 overflow-y-auto z-50 shadow-2xl border border-indigo-500/20">
-                    <div class="p-4 border-b border-slate-700/50 flex justify-between items-center sticky top-0 bg-slate-900/90 backdrop-blur z-10">
-                        <h4 class="font-bold text-white text-sm sm:text-base"><i class="fas fa-bell text-amber-500 mr-2"></i> الإشعارات</h4>
-                        <button onclick="window.toggleNotifMenu()" class="text-xs w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div id="notifList" class="p-2 space-y-1"></div>
-                </div>
             </div>
 
             <button id="themeToggle" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-slate-800 hover:bg-slate-700 border border-slate-700 transition shrink-0">
@@ -241,6 +234,17 @@
             </button>
         </div>
     </nav>
+    
+    <!-- Notification Center Modal (Centered for Mobile and PC) -->
+    <div id="notifDropdown" class="hidden fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div class="glass-panel w-full max-w-md max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl border border-indigo-500/20 bg-slate-900 relative transform transition-all">
+            <div class="p-4 sm:p-5 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/95 z-10 shrink-0">
+                <h4 class="font-black text-white text-base sm:text-lg flex items-center"><div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center mr-2"><i class="fas fa-bell text-amber-500"></i></div> الإشعارات</h4>
+                <button onclick="window.toggleNotifMenu()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500 transition shadow-sm"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="notifList" class="p-3 sm:p-4 space-y-2 overflow-y-auto flex-1 custom-scrollbar pb-6"></div>
+        </div>
+    </div>
 
     <main id="app" class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8 relative w-full max-w-7xl">
         <!-- Content injected by JS -->
@@ -262,7 +266,7 @@
     </footer>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-6 hidden z-[100] transform transition-all duration-300 translate-y-10 opacity-0 w-[calc(100%-3rem)] sm:w-auto">
+    <div id="toast" class="fixed bottom-6 left-6 hidden z-[200] transform transition-all duration-300 translate-y-10 opacity-0 w-[calc(100%-3rem)] sm:w-auto">
         <div class="glass-panel px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border-l-4 border-l-amber-500 bg-slate-800/95">
             <div id="toastIconContainer" class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-slate-700 shrink-0">
                 <i id="toastIcon" class="fas fa-info-circle text-amber-500 text-sm"></i>
@@ -290,10 +294,12 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // التعديل الرابع: حفظ واسترجاع اللغة من localStorage
+        let currentLang = localStorage.getItem('platform_lang') || 'ar';
+        document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        
         let currentUser = null;
         let userData = null;
-        let currentLang = 'ar';
-        
         let currentExamQuestions = [];
         let notifUnsubscribe = null;
         let isSigningUp = false;
@@ -304,21 +310,26 @@
         const ADMIN_PHONE = "01146979833"; 
         const PHONE_DOMAIN = "@nournady.platform";
 
-        // Scroll Observer Initialization Function
+        // ضبط نص زر اللغة عند بدء التحميل
+        document.addEventListener("DOMContentLoaded", () => {
+            const langBtn = document.getElementById('langToggle');
+            if(langBtn) langBtn.innerText = currentLang === 'ar' ? 'English' : 'عربي';
+        });
+
+        // تعديل سلاسة الحركة (Observer) بحيث تظهر العناصر ولا تختفي مجدداً
         const scrollObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('scroll-active');
-                } else {
-                    entry.target.classList.remove('scroll-active');
+                    scrollObserver.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.05, rootMargin: "0px 0px -20px 0px" });
+        }, { threshold: 0.0, rootMargin: "100px 0px 100px 0px" });
 
         window.applyScrollAnimations = () => {
             document.querySelectorAll('.glass-panel, .course-card, .q-block, .scroll-reveal').forEach(el => {
                 if(!el.classList.contains('scroll-reveal')) el.classList.add('scroll-reveal');
-                scrollObserver.observe(el);
+                if(!el.classList.contains('scroll-active')) scrollObserver.observe(el);
             });
         };
 
@@ -541,7 +552,7 @@
             
             toastMsg.textContent = msg;
             
-            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-[100] transform transition-all duration-500 w-[90%] sm:w-auto';
+            toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-[200] transform transition-all duration-500 w-[90%] sm:w-auto';
             toast.children[0].className = 'glass-panel px-4 py-3 sm:px-6 sm:py-4 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border-l-4 bg-slate-800/95 w-full';
             
             if(type === 'success') {
@@ -582,8 +593,10 @@
             }
         };
         
+        // التعديل الرابع: حفظ اللغة عند التغيير 
         const toggleLang = () => { 
             currentLang = currentLang === 'ar' ? 'en' : 'ar'; 
+            localStorage.setItem('platform_lang', currentLang);
             document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr'; 
             document.getElementById('langToggle').innerText = currentLang === 'ar' ? 'English' : 'عربي';
             router(); 
@@ -640,13 +653,13 @@
                         const isRead = data.readBy && data.readBy.includes(currentUser.uid);
                         if (!isRead) unreadCount++;
                         const icon = data.type === 'alert' ? 'fa-exclamation-triangle text-amber-500 bg-amber-500/10' : data.type === 'success' ? 'fa-check text-green-500 bg-green-500/10' : 'fa-info text-indigo-400 bg-indigo-500/10';
-                        html += `<div class="p-3 rounded-xl hover:bg-slate-800/50 transition border border-transparent hover:border-slate-700 flex gap-4 items-start ${!isRead ? 'bg-slate-800/30' : ''}">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${icon.split(' ')[2]}">
-                                        <i class="fas ${icon.split(' ')[0]} ${icon.split(' ')[1]} text-xs"></i>
+                        html += `<div class="p-3 sm:p-4 rounded-xl hover:bg-slate-800/50 transition border border-transparent hover:border-slate-700 flex gap-3 sm:gap-4 items-start ${!isRead ? 'bg-slate-800/40 border-slate-700/50' : 'bg-transparent'}">
+                                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${icon.split(' ')[2]} border border-slate-700/50">
+                                        <i class="fas ${icon.split(' ')[0]} ${icon.split(' ')[1]} text-xs sm:text-sm"></i>
                                     </div>
-                                    <div>
-                                        <h5 class="font-bold text-sm ${isRead ? 'text-slate-400' : 'text-white'}">${data.title}</h5>
-                                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">${data.message}</p>
+                                    <div class="flex-1">
+                                        <h5 class="font-bold text-sm sm:text-base ${isRead ? 'text-slate-400' : 'text-white'}">${data.title}</h5>
+                                        <p class="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">${data.message}</p>
                                     </div>
                                  </div>`;
                     });
@@ -677,7 +690,7 @@
             });
         };
 
-        // دالة تسجيل مشاهدة الفيديو في قاعدة البيانات
+        // تسجيل مشاهدة الفيديو في قاعدة البيانات
         window.logVideoClick = async (videoId, videoTitle, overlayEl) => {
             overlayEl.classList.add('opacity-0', 'pointer-events-none');
             setTimeout(() => overlayEl.classList.add('hidden'), 300);
@@ -790,6 +803,10 @@
                             <label class="block text-xs sm:text-sm font-bold text-slate-400 mb-1 sm:mb-2 pl-1">${t('newPassword')}</label>
                             <input type="password" id="settingPass" placeholder="••••••••" class="edu-input text-sm sm:text-base">
                         </div>
+                        <div>
+                            <label class="block text-xs sm:text-sm font-bold text-slate-400 mb-1 sm:mb-2 pl-1">تأكيد كلمة المرور الجديدة</label>
+                            <input type="password" id="settingPassConfirm" placeholder="••••••••" class="edu-input text-sm sm:text-base">
+                        </div>
                         <button onclick="window.saveSettings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 sm:py-3.5 rounded-xl transition shadow-lg shadow-indigo-500/30 mt-4 text-sm sm:text-base">${t('saveChanges')}</button>
                     </div>
                 </div>
@@ -866,9 +883,10 @@
                     `}
                 </div>
             `,
+            // التعديل الثاني: العودة للرئيسية دون عمل Refresh للصفحة الكاملة
             courseView: () => `
                 <div class="animate-fade-in pb-10">
-                    <button onclick="window.location.reload()" class="mb-4 sm:mb-6 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 inline-flex w-auto border border-slate-700 scroll-reveal"><i class="fas fa-arrow-right rtl:rotate-180"></i> العودة للرئيسية</button>
+                    <button onclick="window.exitCourse()" class="mb-4 sm:mb-6 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-2 inline-flex w-auto border border-slate-700 scroll-reveal"><i class="fas fa-arrow-right rtl:rotate-180"></i> العودة للرئيسية</button>
                     
                     <div class="glass-panel p-6 sm:p-8 rounded-3xl mb-6 sm:mb-8 border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-slate-900 relative overflow-hidden scroll-reveal">
                         <div class="absolute -right-5 sm:-right-10 -top-5 sm:-top-10 text-indigo-500/10"><i class="fas fa-book text-7xl sm:text-9xl"></i></div>
@@ -908,6 +926,15 @@
                             <button onclick="window.exitExam()" class="w-8 h-8 sm:w-10 sm:h-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-red-500 transition shrink-0"><i class="fas fa-times"></i></button>
                         </div>
                         
+                        <!-- سجل المحاولات والدرجات أعلى الامتحان -->
+                        <div id="examHistorySection" class="mb-6 sm:mb-8 bg-slate-800/50 p-4 sm:p-5 rounded-xl border border-indigo-500/20 hidden animate-fade-in scroll-reveal">
+                            <h4 class="text-sm sm:text-base font-bold text-indigo-300 mb-3 flex justify-between items-center">
+                                <span><i class="fas fa-history mr-1"></i> محاولاتك السابقة للتقييم الذاتي (<span id="examAttemptsCount">0</span>/10)</span>
+                            </h4>
+                            <div id="examHistoryList" class="flex flex-wrap gap-2"></div>
+                            <div id="examWarningMax" class="hidden text-xs sm:text-sm text-red-400 font-bold mt-3 bg-red-500/10 p-2 sm:p-3 rounded-lg border border-red-500/20"><i class="fas fa-exclamation-triangle ml-1"></i> لقد استنفذت الحد الأقصى للمحاولات (10 مرات). يمكنك مراجعة الأسئلة فقط دون تقديم إجابات جديدة.</div>
+                        </div>
+
                         <div id="examQuestions" class="space-y-6 sm:space-y-8"></div>
                         
                         <button id="submitExamBtn" onclick="submitExam()" class="mt-8 sm:mt-10 w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black py-3 sm:py-4 rounded-xl hover:shadow-[0_10px_20px_rgba(245,158,11,0.3)] transition transform hover:-translate-y-1 text-base sm:text-lg scroll-reveal">تسليم الإجابات <i class="fas fa-paper-plane ml-2"></i></button>
@@ -917,7 +944,7 @@
                                 <i class="fas fa-trophy text-2xl sm:text-3xl text-amber-400"></i>
                             </div>
                             <h3 class="text-xl sm:text-2xl font-black text-white mb-2">${t('examResult')}</h3>
-                            <div id="scoreDisplay" class="text-4xl sm:text-5xl font-black text-indigo-400 mb-2"></div>
+                            <div id="scoreDisplay" class="text-4xl sm:text-5xl font-black text-indigo-400 mb-2 w-full"></div>
                         </div>
                     </div>
                 </div>
@@ -934,6 +961,7 @@
         window.setAdminTab = (tab) => { adminTab = tab; router(); loadAdminData(); };
         window.setStudentTab = (tab) => { studentTab = tab; router(); if(tab==='home') renderStudentCourses(); };
         window.exitExam = () => { selectedExam = null; router(); };
+        window.exitCourse = () => { selectedCourse = null; selectedExam = null; router(); };
         window.resetToLogin = () => { showSignupSuccess = false; window.setAuthMode('login'); };
         window.closeSettings = () => { if(currentUser.role === 'admin') window.setAdminTab('requests'); else window.setStudentTab('home'); };
 
@@ -988,7 +1016,6 @@
                         else if (data.status === 'rejected') { await signOut(auth); showToast("تم رفض الحساب من قبل الإدارة", 'error'); }
                         else { userData = data; currentUser = user; router(); }
                     } else {
-                        // إذا تم حذف الملف من قاعدة البيانات، يسجل خروج فوراً وتظهر رسالة
                         await signOut(auth);
                         showToast("تمت إزالة حسابك بواسطة المشرف، يرجى إنشاء حساب من جديد.", "error");
                     }
@@ -1007,17 +1034,16 @@
                             status: 'pending',
                             role: 'student',
                             avatar: '',
+                            examAttempts: {}, 
                             createdAt: new Date().toISOString()
                         });
                         showSignupSuccess = true; isSigningUp = false; await signOut(auth);
                     } catch (signupError) {
-                        // إذا الرقم مسجل كحساب محذوف (يتيح إنشاء حساب من جديد بنفس الباسورد القديم)
                         if (signupError.code === 'auth/email-already-in-use') {
                             try {
                                 const loginCred = await signInWithEmailAndPassword(auth, email, password);
                                 const docSnap = await getDoc(doc(db, "users", loginCred.user.uid));
                                 if (!docSnap.exists()) {
-                                    // إذا تم تسجيل الدخول ولم يجد ملفه (يعني محذوف)، يقوم بإعادة إنشاء الملف!
                                     await setDoc(doc(db, "users", loginCred.user.uid), {
                                         name: document.getElementById('name').value,
                                         phone: phoneVal,
@@ -1026,6 +1052,7 @@
                                         status: 'pending',
                                         role: 'student',
                                         avatar: '',
+                                        examAttempts: {},
                                         createdAt: new Date().toISOString()
                                     });
                                     showSignupSuccess = true; isSigningUp = false; await signOut(auth);
@@ -1089,6 +1116,19 @@
         window.saveSettings = async () => {
             const newName = document.getElementById('settingName').value;
             const newPass = document.getElementById('settingPass').value;
+            const confirmPass = document.getElementById('settingPassConfirm').value;
+            
+            if(newPass || confirmPass) {
+                if(newPass !== confirmPass) {
+                    showToast("كلمات المرور الجديدة غير متطابقة!", "error");
+                    return;
+                }
+                if(newPass.length < 6) {
+                    showToast("يجب أن تتكون كلمة المرور من 6 أحرف/أرقام على الأقل", "error");
+                    return;
+                }
+            }
+
             try {
                 if (!userData) userData = {}; 
                 const updates = { name: newName };
@@ -1374,7 +1414,6 @@
             window.renderQuestionInputs();
         };
 
-        // إضافة دالة إرسال الإشعار التي كانت مفقودة وتسبب توقف الزر
         window.sendSystemNotification = async (title, message, type = 'info') => {
             try {
                 await addDoc(collection(db, "notifications"), {
@@ -1533,16 +1572,9 @@
             if(selectedCourse.videos?.length > 0) {
                 videoList.innerHTML = selectedCourse.videos.map(v => `
                     <div class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-md group scroll-reveal relative">
-                        <div class="aspect-video bg-black relative">
-                            <!-- Overlay Play Button Log Viewer -->
-                            <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 cursor-pointer transition-all duration-300 hover:bg-black/40" onclick="window.logVideoClick('${v.id}', '${v.title}', this)">
-                                <div class="flex flex-col items-center gap-2">
-                                    <div class="w-12 h-10 sm:w-16 sm:h-12 bg-red-600 text-white rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition shadow-[0_0_20px_rgba(220,38,38,0.5)]">
-                                        <i class="fas fa-play ml-1"></i>
-                                    </div>
-                                    <div class="text-[10px] sm:text-xs font-bold text-white bg-black/50 px-2 sm:px-3 py-1 rounded-full border border-white/10">اضغط لتسجيل المشاهدة والتشغيل</div>
-                                </div>
-                            </div>
+                        <div class="aspect-video relative group">
+                            <!-- التعديل الثالث: إزالة الغطاء الأسود لتظهر مصغرات اليوتيوب بشكلها الطبيعي -->
+                            <div class="absolute inset-0 z-10 cursor-pointer transition-all duration-300 group-hover:bg-white/5" onclick="window.logVideoClick('${v.id}', '${v.title}', this)"></div>
                             <!-- YouTube iFrame -->
                             <iframe src="${v.url}" class="w-full h-full absolute top-0 left-0 z-0 pointer-events-none" allowfullscreen></iframe>
                         </div>
@@ -1580,7 +1612,35 @@
             setTimeout(window.applyScrollAnimations, 50);
         };
 
-        window.startExam = (index) => { selectedExam = selectedCourse.exams[index]; router(); 
+        window.startExam = (index) => { 
+            selectedExam = selectedCourse.exams[index]; 
+            router(); 
+            
+            const attempts = userData?.examAttempts?.[selectedExam.id] || [];
+            const historySection = document.getElementById('examHistorySection');
+            const historyList = document.getElementById('examHistoryList');
+            const countSpan = document.getElementById('examAttemptsCount');
+            const warningMax = document.getElementById('examWarningMax');
+            const submitBtn = document.getElementById('submitExamBtn');
+            
+            if(attempts.length > 0) {
+                historySection.classList.remove('hidden');
+                countSpan.textContent = attempts.length;
+                historyList.innerHTML = attempts.map((a, i) => `
+                    <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold ${a.score >= Math.floor(a.maxScore/2) ? 'text-green-400 border-green-500/30' : 'text-amber-400 border-amber-500/30'} shadow-sm">
+                        <span class="text-slate-400 mr-1">محاولة ${i+1}:</span> ${a.score}/${a.maxScore}
+                    </div>
+                `).join('');
+            }
+            
+            if(attempts.length >= 10) {
+                warningMax.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+                setTimeout(() => {
+                   document.querySelectorAll('.q-block input, .q-block textarea').forEach(inp => inp.disabled = true);
+                }, 100);
+            }
+
             document.getElementById('examQuestions').innerHTML = selectedExam.questions.map((q, i) => 
                 `<div class="bg-slate-800 p-4 sm:p-6 md:p-8 rounded-2xl border border-slate-700 q-block relative shadow-md scroll-reveal" id="qblock-${i}">
                     <div class="flex gap-3 sm:gap-4 items-start mb-4 sm:mb-6">
@@ -1612,20 +1672,20 @@
                 </div>`
             ).join('');
             
-            // Trigger MathJax
             if(window.MathJax) { setTimeout(()=> window.MathJax.typesetPromise(), 100); }
             setTimeout(window.applyScrollAnimations, 50);
         };
         
         window.submitExam = async () => {
             let score = 0;
+            const mcqTfCount = selectedExam.questions.filter(q=>q.type!=='essay').length;
+            
             document.querySelectorAll('.q-block').forEach((b, i) => {
                 const q = selectedExam.questions[i];
                 const resultDiv = document.getElementById(`res-${i}`);
                 const indicator = resultDiv.querySelector('.res-indicator');
                 resultDiv.classList.remove('hidden'); 
                 
-                // Disable inputs
                 b.querySelectorAll('input, textarea').forEach(inp => inp.disabled = true);
 
                 if(q.type !== 'essay') { 
@@ -1647,13 +1707,19 @@
                 }
             });
             
-            const mcqTfCount = selectedExam.questions.filter(q=>q.type!=='essay').length;
             const percentage = mcqTfCount > 0 ? Math.round((score / mcqTfCount) * 100) : 0;
             let colorClass = percentage >= 85 ? 'text-green-400' : percentage >= 50 ? 'text-amber-400' : 'text-red-400';
             
-            // Log Result to Database for Stats
             if (currentUser && currentUser.role === 'student') {
                 try {
+                    if (!userData.examAttempts) userData.examAttempts = {};
+                    if (!userData.examAttempts[selectedExam.id]) userData.examAttempts[selectedExam.id] = [];
+                    
+                    if(userData.examAttempts[selectedExam.id].length < 10) {
+                        userData.examAttempts[selectedExam.id].push({ score: score, maxScore: mcqTfCount, date: new Date().toISOString() });
+                        await setDoc(doc(db, "users", currentUser.uid), { examAttempts: userData.examAttempts }, { merge: true });
+                    }
+
                     await addDoc(collection(db, "activity_logs"), {
                         userId: currentUser.uid,
                         userName: userData.name,
@@ -1666,15 +1732,25 @@
                 } catch(e) { console.error("Error logging exam result", e); }
             }
 
+            const attemptsCount = userData?.examAttempts?.[selectedExam.id]?.length || 0;
+
             document.getElementById('scoreDisplay').innerHTML = `
                 <span class="${colorClass}">${score}</span> <span class="text-2xl sm:text-3xl text-slate-500">/ ${mcqTfCount}</span>
-                <p class="text-xs sm:text-sm font-semibold text-slate-400 mt-3 sm:mt-4 bg-slate-900 inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-slate-700"><i class="fas fa-info-circle text-blue-400 mr-1"></i> الأسئلة المقالية تُقيّم يدوياً من أستاذ المادة ولا تُحسب في النتيجة الآلية.</p>
+                <p class="text-xs sm:text-sm font-semibold text-slate-400 mt-3 sm:mt-4 bg-slate-900 inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border border-slate-700 w-full"><i class="fas fa-info-circle text-blue-400 mr-1"></i> الأسئلة المقالية تُقيّم يدوياً من أستاذ المادة ولا تُحسب في النتيجة الآلية.</p>
+                
+                <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 border-t border-slate-700/50 pt-6">
+                    <button onclick="window.exitExam()" class="w-full sm:w-auto px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition text-sm flex items-center justify-center gap-2 shadow-sm"><i class="fas fa-arrow-right rtl:rotate-180"></i> العودة للمقرر</button>
+                    ${attemptsCount < 10 ? 
+                        `<button onclick="window.startExam(${selectedCourse.exams.findIndex(e=>e.id===selectedExam.id)})" class="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition text-sm shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"><i class="fas fa-redo"></i> إعادة الامتحان (${10 - attemptsCount} محاولات)</button>` : 
+                        `<span class="w-full sm:w-auto px-6 py-3 bg-red-500/10 text-red-400 rounded-xl font-bold text-sm border border-red-500/20 text-center"><i class="fas fa-ban ml-1"></i> استنفذت جميع المحاولات</span>`
+                    }
+                </div>
             `;
+            
             document.getElementById('examResultPanel').classList.remove('hidden');
             document.getElementById('submitExamBtn').classList.add('hidden'); 
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Re-trigger MathJax
             if(window.MathJax) { window.MathJax.typesetPromise(); }
             setTimeout(window.applyScrollAnimations, 50);
         };
