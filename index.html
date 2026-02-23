@@ -691,13 +691,24 @@
             });
         };
 
-        // تسجيل مشاهدة الفيديو في قاعدة البيانات
-        window.logVideoClick = async (videoId, videoTitle, overlayEl) => {
+        // تسجيل مشاهدة الفيديو وإنشاء الفريم ديناميكياً لتسريع التحميل
+        window.logVideoClick = async (videoId, videoTitle, overlayEl, videoUrl) => {
+            // إخفاء الغطاء وزر التشغيل الوهمي
             overlayEl.classList.add('opacity-0', 'pointer-events-none');
             setTimeout(() => overlayEl.classList.add('hidden'), 300);
             
-            const iframe = overlayEl.nextElementSibling;
-            if(iframe) iframe.classList.remove('pointer-events-none');
+            // استبدال الصورة (Thumbnail) بمشغل اليوتيوب الحقيقي
+            const imgEl = overlayEl.nextElementSibling;
+            if(imgEl && imgEl.tagName === 'IMG') {
+                const iframe = document.createElement('iframe');
+                // إضافة خاصية التشغيل التلقائي بمجرد التحميل
+                const autoPlayUrl = videoUrl + (videoUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                iframe.src = autoPlayUrl;
+                iframe.className = "w-full h-full absolute top-0 left-0 z-0";
+                iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                iframe.allowFullscreen = true;
+                imgEl.replaceWith(iframe);
+            }
             
             if (currentUser && currentUser.role === 'student') {
                 try {
@@ -709,6 +720,60 @@
                         date: new Date().toISOString()
                     });
                 } catch(e) { console.error("Error logging view", e); }
+            }
+        };
+
+        // دالة فتح وإغلاق مستطيل الفيديو
+        window.toggleVideoAccordion = (containerId, iconId) => {
+            const container = document.getElementById(containerId);
+            const icon = document.getElementById(iconId);
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if(icon) icon.classList.add('rotate-180');
+            } else {
+                container.classList.add('hidden');
+                if(icon) icon.classList.remove('rotate-180');
+            }
+        };
+
+        // دالة الزر الأخضر (تم الإنجاز) مع حفظ التقدم في حساب الطالب بقاعدة البيانات وتصحيح الخطأ
+        window.toggleVideoCompletion = async (e, videoId) => {
+            // إيقاف فتح الفيديو عند الضغط على الزر فقط
+            if(e) e.stopPropagation();
+            
+            if (!currentUser) return; // تم إزالة شرط الطالب ليتمكن المشرف من التجربة أيضاً
+
+            if (!userData) userData = {};
+            if (!userData.completedVideos) userData.completedVideos = [];
+            
+            const isCompleted = userData.completedVideos.includes(videoId);
+            const btn = document.getElementById(`btn-complete-${videoId}`);
+            const textSpan = document.getElementById(`text-complete-${videoId}`);
+            const icon = btn.querySelector('i');
+
+            if (isCompleted) {
+                // إزالة من المكتمل وإرجاعه للشكل العادي
+                userData.completedVideos = userData.completedVideos.filter(id => id !== videoId);
+                btn.className = "bg-slate-700 text-slate-300 hover:bg-slate-600 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shrink-0 ml-2";
+                icon.className = "fas fa-circle";
+                textSpan.innerText = "تم الإنجاز";
+            } else {
+                // تعيين كمكتمل وتغييره للأخضر
+                userData.completedVideos.push(videoId);
+                btn.className = "bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shrink-0 ml-2";
+                icon.className = "fas fa-check-circle";
+                textSpan.innerText = "مكتمل";
+            }
+
+            // حفظ التحديث مباشرة في الـ Firebase بطريقة آمنة
+            if (currentUser.uid) {
+                try {
+                    await setDoc(doc(db, "users", currentUser.uid), {
+                        completedVideos: userData.completedVideos
+                    }, { merge: true });
+                } catch(error) {
+                    console.error("Error updating completion status", error);
+                }
             }
         };
 
@@ -1571,19 +1636,49 @@
         const renderCourseContent = () => {
             const videoList = document.getElementById('videoList');
             if(selectedCourse.videos?.length > 0) {
-                videoList.innerHTML = selectedCourse.videos.map(v => `
-                    <div class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-md group scroll-reveal relative">
-                        <div class="aspect-video relative group">
-                            <!-- التعديل الثالث: إزالة الغطاء الأسود لتظهر مصغرات اليوتيوب بشكلها الطبيعي -->
-                            <div class="absolute inset-0 z-10 cursor-pointer transition-all duration-300 group-hover:bg-white/5" onclick="window.logVideoClick('${v.id}', '${v.title}', this)"></div>
-                            <!-- YouTube iFrame -->
-                            <iframe src="${v.url}" class="w-full h-full absolute top-0 left-0 z-0 pointer-events-none" allowfullscreen></iframe>
+                videoList.innerHTML = selectedCourse.videos.map(v => {
+                    // استخراج معرف اليوتيوب لجلب الصورة المصغرة بدلاً من تحميل الفيديو
+                    let yId = v.url.includes('embed/') ? v.url.split('embed/')[1].split('?')[0] : v.url.split('/').pop();
+                    let thumbUrl = `https://img.youtube.com/vi/${yId}/hqdefault.jpg`;
+                    
+                    let isCompleted = userData?.completedVideos?.includes(v.id) || false;
+                    let btnClass = isCompleted ? 'bg-green-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600';
+                    let btnIcon = isCompleted ? 'fa-check-circle' : 'fa-circle';
+                    let btnText = isCompleted ? 'مكتمل' : 'تم الإنجاز';
+
+                    return `
+                    <div class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-md scroll-reveal relative mb-3 group">
+                        <!-- الخانة العلوية (المستطيل القابل للضغط) -->
+                        <div class="p-3 sm:p-4 flex justify-between items-center bg-slate-800 cursor-pointer hover:bg-slate-700 transition border-b border-transparent hover:border-slate-600" onclick="window.toggleVideoAccordion('vid-container-${v.id}', 'icon-accordion-${v.id}')">
+                            <div class="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden">
+                                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0"><i class="fab fa-youtube text-xs sm:text-base"></i></div>
+                                <h4 class="font-bold text-slate-200 text-xs sm:text-sm truncate">${v.title}</h4>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <!-- زر الإنجاز -->
+                                <button onclick="window.toggleVideoCompletion(event, '${v.id}')" id="btn-complete-${v.id}" class="${btnClass} px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition flex items-center gap-1.5 shrink-0 ml-2">
+                                    <i class="fas ${btnIcon}"></i> <span id="text-complete-${v.id}">${btnText}</span>
+                                </button>
+                                <i class="fas fa-chevron-down text-slate-500 text-sm ml-1 transition-transform duration-300" id="icon-accordion-${v.id}"></i>
+                            </div>
                         </div>
-                        <div class="p-3 sm:p-4 flex items-center gap-2 sm:gap-3 bg-slate-800 border-t border-slate-700">
-                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0"><i class="fab fa-youtube text-xs sm:text-base"></i></div>
-                            <h4 class="font-bold text-slate-200 text-xs sm:text-sm line-clamp-1">${v.title}</h4>
+
+                        <!-- مساحة الفيديو (مخفية افتراضياً) -->
+                        <div id="vid-container-${v.id}" class="hidden">
+                            <div class="aspect-video relative group border-t border-slate-700">
+                                <!-- غطاء شفاف يحاكي زر التشغيل -->
+                                <div class="absolute inset-0 z-10 cursor-pointer transition-all duration-300 group-hover:bg-black/20 flex items-center justify-center" onclick="window.logVideoClick('${v.id}', '${v.title}', this, '${v.url}')">
+                                    <div class="w-12 h-12 bg-red-600/90 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(220,38,38,0.5)] transform transition group-hover:scale-110">
+                                        <i class="fas fa-play text-white ml-1 text-lg"></i>
+                                    </div>
+                                </div>
+                                <!-- عرض صورة مصغرة بدلاً من الـ iframe الكامل لتسريع التحميل -->
+                                <img src="${thumbUrl}" class="w-full h-full object-cover absolute top-0 left-0 z-0" alt="${v.title}">
+                            </div>
                         </div>
-                    </div>`).join('');
+                    </div>`
+                }).join('');
             } else { videoList.innerHTML = `<p class="text-slate-500 text-xs sm:text-sm scroll-reveal"><i class="fas fa-info-circle"></i> لا توجد محاضرات مرئية حالياً.</p>`; }
 
             const examList = document.getElementById('examList');
@@ -1807,8 +1902,10 @@
         });
     </script>
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
+  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('./sw.js').catch(function(error) {
+        console.warn('Service Worker registration failed:', error);
+    });
   }
     </script>
 </body>
